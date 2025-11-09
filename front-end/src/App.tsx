@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
 import MachineList from "./pages/machines/MachineList";
 import BreakdownsList from "./pages/breakdowns/BreakdownsList";
@@ -7,22 +8,91 @@ import OperatorsManagement from "./pages/operators/OperatorsManagement";
 import InterventionList from "./pages/interventions/InterventionList";
 import StockManagement from "./pages/stocks/StockManagement";
 import AlertManagement from "./pages/alerts/AlertManagement";
-import Register from "./pages/auth/register";
+
+import ProtectedRoute from "./routes/ProtectedRoute";
+import PublicRoute from "./routes/PublicRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/machines" element={<MachineList />} />
-        <Route path="/breakdowns" element={<BreakdownsList />} />
-        <Route path="/operators" element={<OperatorsManagement />} />
-        <Route path="/interventions" element={<InterventionList />} />
-        <Route path="/stocks" element={<StockManagement />} />
-        <Route path="/alerts" element={<AlertManagement />} />
+
+        {/* Routes publiques */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+
+        {/* Routes protégées */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/machines"
+          element={
+            <ProtectedRoute>
+              <MachineList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/breakdowns"
+          element={
+            <ProtectedRoute>
+              <BreakdownsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/operators"
+          element={
+            <ProtectedRoute>
+              <OperatorsManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/interventions"
+          element={
+            <ProtectedRoute>
+              <InterventionList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stocks"
+          element={
+            <ProtectedRoute>
+              <StockManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute>
+              <AlertManagement />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
