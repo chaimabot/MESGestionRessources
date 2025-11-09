@@ -16,7 +16,7 @@ const run = async () => {
   });
 
   await newUser.save();
-  console.log("✅ Utilisateur ajouté avec succès !");
+  console.log("Utilisateur ajouté avec succès !");
   mongoose.connection.close();
 };
 

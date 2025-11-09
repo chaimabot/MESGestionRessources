@@ -1,13 +1,10 @@
-const machineRepository = require("../repositories/MachineRepository");
+const machineRepo = require("../repositories/MachineRepository");
 
-class MachineService {
-  async getMachines() {
-    return await machineRepository.findAll();
-  }
+const machineService = {
+  getAllMachines: () => machineRepo.getAll(),
+  getMachineById: (id) => machineRepo.getById(id),
+  addMachine: (data) => machineRepo.add(data),
+  updateMachineStatus: (id, status) => machineRepo.updateStatus(id, status),
+};
 
-  async addMachine(machineDTO) {
-    return await machineRepository.create(machineDTO);
-  }
-}
-
-module.exports = new MachineService();
+module.exports = machineService;

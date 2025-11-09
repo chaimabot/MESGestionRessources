@@ -1,6 +1,7 @@
 const express = require("express");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/UserRoutes");
+const machinesRoutes = require("./routes/MachineRoutes");
 const cors = require("cors");
 
 const app = express();
@@ -20,5 +21,6 @@ app.use(
 );
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/machines", machinesRoutes);
 
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));

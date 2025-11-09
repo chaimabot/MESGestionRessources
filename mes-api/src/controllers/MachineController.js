@@ -1,15 +1,28 @@
 const machineService = require("../services/MachineService");
+const response = require("../utils/response");
 
-class MachineController {
-  async getAll(req, res) {
-    const machines = await machineService.getMachines();
-    res.json(machines);
-  }
+const machineController = {
+  getAll: (req, res) => {
+    const machines = machineService.getAllMachines();
+    response.success(res, machines);
+  },
+  getById: (req, res) => {
+    const machine = machineService.getMachineById(req.params.id);
+    if (!machine) return response.error(res, "Machine not found", 404);
+    response.success(res, machine);
+  },
+  addMachine: (req, res) => {
+    const newMachine = machineService.addMachine(req.body);
+    response.success(res, newMachine);
+  },
+  updateStatus: (req, res) => {
+    const updatedMachine = machineService.updateMachineStatus(
+      req.params.id,
+      req.body.status
+    );
+    if (!updatedMachine) return response.error(res, "Machine not found", 404);
+    response.success(res, updatedMachine);
+  },
+};
 
-  async create(req, res) {
-    const machine = await machineService.addMachine(req.body);
-    res.status(201).json(machine);
-  }
-}
-
-module.exports = new MachineController();
+module.exports = machineController;
