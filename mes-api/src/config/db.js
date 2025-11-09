@@ -1,14 +1,16 @@
-// src/config/db.js
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const connect = async () => {
+const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ MongoDB connected successfully");
-  } catch (error) {
-    console.error("❌ MongoDB connection failed:", error);
+    await mongoose.connect('mongodb://127.0.0.1:27017/MES_Production', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('MongoDB connecté...');
+  } catch (err) {
+    console.error('Erreur MongoDB:', err.message);
     process.exit(1);
   }
 };
 
-module.exports = connect;
+module.exports = connectDB;
