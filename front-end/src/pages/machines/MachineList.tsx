@@ -1,8 +1,83 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 
+// Interface pour typer les données des machines
+interface Machine {
+  _id?: string;
+  id?: number;
+  name: string;
+  reference: string;
+  status: "Active" | "Breakdown" | "Maintenance";
+  temperature: number;
+  speed: number;
+  production: number;
+  image?: string;
+}
+
 const MachineList: React.FC = () => {
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Récupérer les machines depuis le backend
+  useEffect(() => {
+    const fetchMachines = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:5000/api/machines");
+
+        // ✅ Les données sont dans response.data.data
+        if (response.data.data && Array.isArray(response.data.data)) {
+          setMachines(response.data.data);
+        } else if (Array.isArray(response.data)) {
+          setMachines(response.data);
+        } else {
+          console.error("Format de données invalide:", response.data);
+          setMachines([]);
+          setError("Format de données invalide");
+        }
+
+        setError(null);
+      } catch (err: unknown) {
+        if (axios.isAxiosError(err) && err.response) {
+          setError(err.response.data.error || "Erreur inconnue");
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Erreur inconnue. Veuillez réessayer.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMachines();
+  }, []);
+
+  // Fonction pour obtenir les couleurs selon le status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Active":
+        return "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300";
+      case "Breakdown":
+        return "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300";
+      case "Maintenance":
+        return "bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300";
+      default:
+        return "bg-slate-100 dark:bg-slate-500/20 text-slate-800 dark:text-slate-300";
+    }
+  };
+
+  // Filtrer les machines par recherche
+  const filteredMachines = machines.filter(
+    (machine) =>
+      machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      machine.reference.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="relative flex min-h-screen w-full">
       <Sidebar />
@@ -20,6 +95,7 @@ const MachineList: React.FC = () => {
                 Add Machine
               </button>
             </div>
+
             {/* Filters and Search Bar */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap gap-3">
@@ -51,235 +127,140 @@ const MachineList: React.FC = () => {
                     <input
                       className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-white dark:bg-slate-800/50 h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 text-sm"
                       placeholder="Search by name or reference..."
-                      value=""
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </label>
               </div>
             </div>
+
+            {/* Loading State */}
+            {loading && (
+              <div className="mt-8 flex justify-center items-center">
+                <p className="text-slate-600 dark:text-slate-400">
+                  Chargement des machines...
+                </p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="mt-8 rounded-lg bg-red-50 dark:bg-red-500/10 p-4">
+                <p className="text-red-800 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
             {/* Machine Cards Grid */}
-            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {/* Card 1: Active */}
-              <div className="flex flex-col rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200 dark:ring-slate-800 shadow-sm transition-all hover:shadow-md hover:ring-slate-300 dark:hover:ring-slate-700">
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900/50">
-                      <img
-                        className="h-full w-full object-cover rounded-lg"
-                        data-alt="A modern CNC machine in a factory setting."
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZpXC7foD2YEu2Mjz9UC7_H7qP4E1uTWlxD1RTkhSbqK4dz7C2XExKpknHrllNpyPbLURtDDjE7mh2TNr0dedFEw4ogcVx8f1pj9T5pdIHlOXKfJbG-SrlGOvd-j1oi7iHrBY-tlOLdhuwXlaxZSpGCz234KRbTXBH_wOgtvvJKwkb6y2oH2-6Iq67fI1Go9Q2AmKNKvJ4mbLiSZhSENOkPUVl7gGqVuZkk70H198hQvTbA2-iIUOIrnwVd6EeNmPnxcu1yC_FBLvJ"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                        CNC Milling Machine
-                      </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        REF-0012A
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-500/20 px-2.5 py-0.5 text-xs font-semibold text-green-800 dark:text-green-300">
-                      Active
-                    </div>
+            {!loading && !error && (
+              <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {filteredMachines.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-slate-600 dark:text-slate-400">
+                      Aucune machine trouvée
+                    </p>
                   </div>
-                  <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 p-3">
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Temperature
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        75°C
-                      </p>
+                ) : (
+                  filteredMachines.map((machine) => (
+                    <div
+                      key={machine._id || machine.id}
+                      className="flex flex-col rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200 dark:ring-slate-800 shadow-sm transition-all hover:shadow-md hover:ring-slate-300 dark:hover:ring-slate-700"
+                    >
+                      <div className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900/50">
+                            <img
+                              className="h-full w-full object-cover rounded-lg"
+                              src={
+                                machine.image ||
+                                "https://via.placeholder.com/150"
+                              }
+                              alt={machine.name}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                              {machine.name}
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                              {machine.reference}
+                            </p>
+                          </div>
+                          <div
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(
+                              machine.status
+                            )}`}
+                          >
+                            {machine.status}
+                          </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 p-3">
+                          <div className="text-center">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Temperature
+                            </p>
+                            <p
+                              className={`mt-1 font-semibold ${
+                                machine.status === "Breakdown"
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-slate-800 dark:text-slate-200"
+                              }`}
+                            >
+                              {machine.temperature}°C
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Speed
+                            </p>
+                            <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
+                              {machine.speed} RPM
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Production
+                            </p>
+                            <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
+                              {machine.production} u/hr
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
+                        <button className="rounded-lg h-9 px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+                          Details
+                        </button>
+                        <button className="rounded-lg h-9 px-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20">
+                          Report Breakdown
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Speed
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        1200 RPM
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Production
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        85 u/hr
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
-                  <button className="rounded-lg h-9 px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
-                    Details
-                  </button>
-                  <button className="rounded-lg h-9 px-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20">
-                    Report Breakdown
-                  </button>
-                </div>
+                  ))
+                )}
               </div>
-              {/* Card 2: Breakdown */}
-              <div className="flex flex-col rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200 dark:ring-slate-800 shadow-sm transition-all hover:shadow-md hover:ring-slate-300 dark:hover:ring-slate-700">
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900/50">
-                      <img
-                        className="h-full w-full object-cover rounded-lg"
-                        data-alt="A robotic welding arm in operation."
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMQePFyKOIfdUglZD2ofruf1lgaZ7_KkM6ms6-i-LDz_ZOcQYgaC9Ml8OwOL7uyOjt7Rf1ydRKkSNTwtYrRsXB_jXCMK5vD36Yj-g_75nv4kGEQTiTEao4HXzRXejIk-eNEySlifmFSLiYd01djOULjaKDwWixAMddjehmwaRovu41oX7elPKGRmbpLdtV0edZVa4_aCGgZEy5mUGzZ8K8khg5fFpBcKzUnysXB5qPofJR0Ig6tAa_-vOT2ExBtksQKXLjrC-qXNF5"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                        Robotic Welder
-                      </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        REF-0024B
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-500/20 px-2.5 py-0.5 text-xs font-semibold text-red-800 dark:text-red-300">
-                      Breakdown
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 p-3">
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Temperature
-                      </p>
-                      <p className="mt-1 font-semibold text-red-600 dark:text-red-400">
-                        150°C
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Speed
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        0 RPM
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Production
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        0 u/hr
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
-                  <button className="rounded-lg h-9 px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
-                    Details
-                  </button>
-                  <button className="rounded-lg h-9 px-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20">
-                    Report Breakdown
-                  </button>
-                </div>
-              </div>
-              {/* Card 3: Maintenance */}
-              <div className="flex flex-col rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200 dark:ring-slate-800 shadow-sm transition-all hover:shadow-md hover:ring-slate-300 dark:hover:ring-slate-700">
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900/50">
-                      <img
-                        className="h-full w-full object-cover rounded-lg"
-                        data-alt="A large industrial hydraulic press machine."
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdGbgT9xydDWPHStLZmeQgqqmWBCzqs07ieARKa8P99XYnBJmaxSV9h1DHq2r1SFMtNe8Vv4SZP4MtJ5e3l6WDrYMxGkat3AksWO652eiPcVErL6WgVEIO2fnk5cRSZPgP-8LFpiISNcyBYSbR5iCuS0ewZbtMePaW9wwXJegJdux5LUQKgq9xbsAXApiv78DKWKtigQO-0LhRMza2VzmxBfgy0nQuIfrrc4wUUljm_SZrLtGbRoLFoHAewUsp0mkDjJq4bFnnGzWA"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                        Hydraulic Press
-                      </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        REF-0007C
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-500/20 px-2.5 py-0.5 text-xs font-semibold text-orange-800 dark:text-orange-300">
-                      Maintenance
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 p-3">
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Temperature
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        30°C
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Speed
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        0 RPM
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Production
-                      </p>
-                      <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                        0 u/hr
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
-                  <button className="rounded-lg h-9 px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
-                    Details
-                  </button>
-                  <button className="rounded-lg h-9 px-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20">
-                    Report Breakdown
-                  </button>
-                </div>
-              </div>
-              {/* More cards can be added here */}
-            </div>
+            )}
+
             {/* Pagination */}
-            <div className="mt-8 flex items-center justify-between">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Displaying{" "}
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  1
-                </span>{" "}
-                to{" "}
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  3
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  27
-                </span>{" "}
-                results
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-300 dark:ring-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
-                  disabled
-                >
-                  <span className="material-symbols-outlined text-xl">
-                    chevron_left
-                  </span>
-                </button>
-                <button className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white">
-                  1
-                </button>
-                <button className="flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-300 dark:ring-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  2
-                </button>
-                <button className="flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-300 dark:ring-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  3
-                </button>
-                <button className="flex h-9 w-9 items-center justify-center rounded-lg ring-1 ring-inset ring-slate-300 dark:ring-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  <span className="material-symbols-outlined text-xl">
-                    chevron_right
-                  </span>
-                </button>
+            {!loading && !error && filteredMachines.length > 0 && (
+              <div className="mt-8 flex items-center justify-between">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Displaying{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    1
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {filteredMachines.length}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {machines.length}
+                  </span>{" "}
+                  results
+                </p>
               </div>
-            </div>
+            )}
           </div>
         </main>
       </main>
