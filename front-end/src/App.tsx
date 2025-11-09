@@ -7,12 +7,14 @@ import OperatorsManagement from "./pages/operators/OperatorsManagement";
 import InterventionList from "./pages/interventions/InterventionList";
 import StockManagement from "./pages/stocks/StockManagement";
 import AlertManagement from "./pages/alerts/AlertManagement";
+import Register from "./pages/auth/register";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/machines" element={<MachineList />} />
