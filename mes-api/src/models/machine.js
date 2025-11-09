@@ -1,12 +1,17 @@
 const mongoose = require("mongoose");
 
 const machineSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  name: String,
+  reference: String,
   status: {
     type: String,
-    enum: ["available", "occupied", "maintenance"],
-    default: "available",
+    enum: ["Active", "Maintenance", "Breakdown"],
+    default: "Active",
   },
+  temperature: Number,
+  speed: Number,
+  production: Number,
+  imageUrl: String,
 });
 
 module.exports = mongoose.model("Machine", machineSchema);
