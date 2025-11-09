@@ -21,10 +21,8 @@ const Login: React.FC = () => {
         }
       );
 
-      // stocker le token JWT
       localStorage.setItem("token", response.data.token);
 
-      // Redirection après login
       navigate("/dashboard");
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
