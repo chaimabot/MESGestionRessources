@@ -1,17 +1,40 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(""); // Pour afficher les erreurs
   const navigate = useNavigate();
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login - in a real app, you'd validate credentials here
-    navigate("/dashboard");
+    setError("");
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/users/login",
+        {
+          email,
+          password,
+        }
+      );
+
+      // stocker le token JWT
+      localStorage.setItem("token", response.data.token);
+
+      // Redirection après login
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response.data.error || "Erreur inconnue");
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Erreur inconnue. Veuillez réessayer.");
+      }
+    }
   };
 
   return (
@@ -71,11 +94,13 @@ const Login: React.FC = () => {
                       Enter your credentials to access the system
                     </p>
                   </div>
+                  {error && <p className="text-red-500">{error}</p>}
+
                   <form onSubmit={handleSubmit} className="w-full space-y-6">
                     <div className="flex flex-col">
                       <label className="flex flex-col min-w-40 flex-1">
                         <p className="text-gray-800 dark:text-white text-base font-medium leading-normal pb-2">
-                          Username / Employee ID
+                          Email
                         </p>
                         <div className="relative flex w-full items-center">
                           <span className="material-symbols-outlined absolute left-3 text-gray-400 dark:text-gray-500">
@@ -83,10 +108,10 @@ const Login: React.FC = () => {
                           </span>
                           <input
                             className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-gray-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-[#3b4754] bg-background-light dark:bg-[#1c2127] focus:border-primary dark:focus:border-primary h-14 placeholder:text-gray-400 dark:placeholder:text-[#9dabb9] p-[15px] text-base font-normal leading-normal pl-10"
-                            placeholder="Enter your username or ID"
+                            placeholder="Enter your email"
                             type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                           />
                         </div>
                       </label>
@@ -119,17 +144,6 @@ const Login: React.FC = () => {
                       </label>
                     </div>
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-x-3">
-                        <input
-                          className="h-5 w-5 rounded border-gray-400 dark:border-[#3b4754] border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark focus:ring-primary/50 focus:outline-none"
-                          type="checkbox"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                        />
-                        <p className="text-gray-800 dark:text-white text-base font-normal leading-normal select-none">
-                          Remember Me
-                        </p>
-                      </label>
                       <a
                         className="text-sm font-medium text-primary hover:underline"
                         href="#"
@@ -145,7 +159,7 @@ const Login: React.FC = () => {
                     </button>
                   </form>
                   <p className="text-gray-500 dark:text-gray-400 mt-4">
-                    Pas encore de compte ?{" "}
+                    You don't have a compte ?{" "}
                     <span
                       className="text-primary cursor-pointer"
                       onClick={() => navigate("/register")}
