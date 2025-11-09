@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
+import { useNavigate } from "react-router-dom";
 
-// Interface pour typer les données des machines
 interface Machine {
   _id?: string;
   id?: number;
@@ -21,15 +21,14 @@ const MachineList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
-  // Récupérer les machines depuis le backend
   useEffect(() => {
     const fetchMachines = async () => {
       try {
         setLoading(true);
         const response = await axios.get("http://localhost:5000/api/machines");
 
-        // ✅ Les données sont dans response.data.data
         if (response.data.data && Array.isArray(response.data.data)) {
           setMachines(response.data.data);
         } else if (Array.isArray(response.data)) {
@@ -57,7 +56,6 @@ const MachineList: React.FC = () => {
     fetchMachines();
   }, []);
 
-  // Fonction pour obtenir les couleurs selon le status
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Active":
@@ -90,7 +88,10 @@ const MachineList: React.FC = () => {
               <p className="text-slate-900 dark:text-white text-3xl font-bold leading-tight tracking-tight">
                 Machines Management
               </p>
-              <button className="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary/90">
+              <button
+                onClick={() => navigate("/machines/add")}
+                className="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary/90"
+              >
                 <span className="material-symbols-outlined text-base">add</span>
                 Add Machine
               </button>
