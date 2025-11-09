@@ -144,6 +144,15 @@ const Login: React.FC = () => {
                       Sign In
                     </button>
                   </form>
+                  <p className="text-gray-500 dark:text-gray-400 mt-4">
+                    Pas encore de compte ?{" "}
+                    <span
+                      className="text-primary cursor-pointer"
+                      onClick={() => navigate("/register")}
+                    >
+                      Sign Up
+                    </span>
+                  </p>
                   <footer className="pt-4 text-center">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       © 2024 Your Company. All Rights Reserved.
