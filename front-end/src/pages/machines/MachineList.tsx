@@ -1,58 +1,54 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
-import { useNavigate } from "react-router-dom";
+import Sidebar from "../../components/Sidebar";
 
 interface Machine {
-  _id?: string;
-  id?: number;
+  _id: string;
   name: string;
   reference: string;
   status: "Active" | "Breakdown" | "Maintenance";
   temperature: number;
   speed: number;
   production: number;
-  image?: string;
+  imageUrl?: string;
 }
 
 const MachineList: React.FC = () => {
   const [machines, setMachines] = useState<Machine[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
+
+  // États pour le modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
+  const [newStatus, setNewStatus] = useState<
+    "Active" | "Breakdown" | "Maintenance"
+  >("Active");
+  const [updating, setUpdating] = useState(false);
+
+  // Récupérer toutes les machines depuis le backend
+  const fetchMachines = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("http://localhost:5000/api/machines");
+      if (!response.ok)
+        throw new Error("Erreur lors du chargement des machines");
+      const data = await response.json();
+      setMachines(data.data); // assuming response structure { status, message, data }
+    } catch (err: unknown) {
+      console.error(err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Erreur inconnue");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMachines = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get("http://localhost:5000/api/machines");
-
-        if (response.data.data && Array.isArray(response.data.data)) {
-          setMachines(response.data.data);
-        } else if (Array.isArray(response.data)) {
-          setMachines(response.data);
-        } else {
-          console.error("Format de données invalide:", response.data);
-          setMachines([]);
-          setError("Format de données invalide");
-        }
-
-        setError(null);
-      } catch (err: unknown) {
-        if (axios.isAxiosError(err) && err.response) {
-          setError(err.response.data.error || "Erreur inconnue");
-        } else if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Erreur inconnue. Veuillez réessayer.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMachines();
   }, []);
 
@@ -69,7 +65,54 @@ const MachineList: React.FC = () => {
     }
   };
 
-  // Filtrer les machines par recherche
+  // Modal functions
+  const openModal = (machine: Machine) => {
+    setSelectedMachine(machine);
+    setNewStatus(machine.status);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedMachine(null);
+    setNewStatus("Active");
+  };
+
+  // Update status API
+  const updateStatus = async () => {
+    if (!selectedMachine) return;
+    try {
+      setUpdating(true);
+      const response = await fetch(
+        `http://localhost:5000/api/machines/${selectedMachine._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+      if (!response.ok) throw new Error("Erreur lors de la mise à jour");
+      const updatedMachine = await response.json();
+
+      // Mise à jour locale
+      setMachines((prev) =>
+        prev.map((m) =>
+          m._id === selectedMachine._id ? updatedMachine.data : m
+        )
+      );
+      closeModal();
+    } catch (err: unknown) {
+      console.error(err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Impossible de mettre à jour le statut");
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const filteredMachines = machines.filter(
     (machine) =>
       machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,194 +120,162 @@ const MachineList: React.FC = () => {
   );
 
   return (
-    <div className="relative flex min-h-screen w-full">
+    <div className="relative flex min-h-screen w-full bg-slate-50 dark:bg-slate-950">
+      {/* Sidebar */}
       <Sidebar />
+
+      {/* Main content */}
       <main className="flex-1">
+        {/* Header */}
         <Header />
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
-            {/* Page Heading */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-slate-900 dark:text-white text-3xl font-bold leading-tight tracking-tight">
-                Machines Management
+
+        <div className="p-6 lg:p-8 mx-auto max-w-7xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">
+              Machines Management
+            </p>
+            <button className="flex h-10 items-center justify-center gap-x-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">
+              + Add Machine
+            </button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mt-6 flex-1 min-w-[280px]">
+            <input
+              type="text"
+              placeholder="Search by name or reference..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border p-2"
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="mt-8 rounded-lg bg-red-50 dark:bg-red-500/10 p-4">
+              <p className="text-red-800 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
+          {/* Machine Cards */}
+          {loading ? (
+            <p className="mt-8">Loading...</p>
+          ) : (
+            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredMachines.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Aucune machine trouvée
+                  </p>
+                </div>
+              ) : (
+                filteredMachines.map((machine) => (
+                  <div
+                    key={machine._id}
+                    className="flex flex-col rounded-xl bg-white dark:bg-slate-800/50 shadow-sm hover:shadow-md transition-all"
+                  >
+                    <div className="p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900/50">
+                          <img
+                            src={
+                              machine.imageUrl ||
+                              "https://via.placeholder.com/150"
+                            }
+                            alt={machine.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                            {machine.name}
+                          </h3>
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {machine.reference}
+                          </p>
+                        </div>
+                        <div
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(
+                            machine.status
+                          )}`}
+                        >
+                          {machine.status}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
+                      <button
+                        onClick={() => openModal(machine)}
+                        className="rounded-lg h-9 px-3 text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20"
+                      >
+                        Update Status
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Modal */}
+      {isModalOpen && selectedMachine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Update Machine Status
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                {selectedMachine.name} - {selectedMachine.reference}
               </p>
+            </div>
+
+            <div className="px-6 py-5 space-y-3">
+              {["Active", "Maintenance", "Breakdown"].map((status) => (
+                <label
+                  key={status}
+                  className={`flex items-center p-4 rounded-lg border-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/30 ${
+                    newStatus === status
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="status"
+                    value={status}
+                    checked={newStatus === status}
+                    onChange={(e) => setNewStatus(e.target.value  as "Active" | "Breakdown" | "Maintenance"
+)}
+                    className="h-4 w-4"
+                  />
+                  <span className="ml-3 text-sm font-semibold text-slate-900 dark:text-white">
+                    {status}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
               <button
-                onClick={() => navigate("/machines/add")}
-                className="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary/90"
+                onClick={closeModal}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800"
               >
-                <span className="material-symbols-outlined text-base">add</span>
-                Add Machine
+                Cancel
+              </button>
+              <button
+                onClick={updateStatus}
+                disabled={updating || newStatus === selectedMachine.status}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                {updating ? "Updating..." : "Update Status"}
               </button>
             </div>
-
-            {/* Filters and Search Bar */}
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap gap-3">
-                <button className="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800/50 px-4 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal">
-                    Status
-                  </p>
-                  <span className="material-symbols-outlined text-slate-500 dark:text-slate-400 text-xl">
-                    expand_more
-                  </span>
-                </button>
-                <button className="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-white dark:bg-slate-800/50 px-4 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal">
-                    Type
-                  </p>
-                  <span className="material-symbols-outlined text-slate-500 dark:text-slate-400 text-xl">
-                    expand_more
-                  </span>
-                </button>
-              </div>
-              <div className="flex-1 min-w-[280px]">
-                <label className="flex flex-col h-10 w-full">
-                  <div className="flex w-full flex-1 items-stretch rounded-lg h-full ring-1 ring-inset ring-slate-300 dark:ring-slate-700 focus-within:ring-2 focus-within:ring-primary">
-                    <div className="text-slate-500 dark:text-slate-400 flex bg-white dark:bg-slate-800/50 items-center justify-center pl-3 rounded-l-lg">
-                      <span className="material-symbols-outlined text-xl">
-                        search
-                      </span>
-                    </div>
-                    <input
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-white dark:bg-slate-800/50 h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 text-sm"
-                      placeholder="Search by name or reference..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Loading State */}
-            {loading && (
-              <div className="mt-8 flex justify-center items-center">
-                <p className="text-slate-600 dark:text-slate-400">
-                  Chargement des machines...
-                </p>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="mt-8 rounded-lg bg-red-50 dark:bg-red-500/10 p-4">
-                <p className="text-red-800 dark:text-red-400">{error}</p>
-              </div>
-            )}
-
-            {/* Machine Cards Grid */}
-            {!loading && !error && (
-              <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {filteredMachines.length === 0 ? (
-                  <div className="col-span-full text-center py-12">
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Aucune machine trouvée
-                    </p>
-                  </div>
-                ) : (
-                  filteredMachines.map((machine) => (
-                    <div
-                      key={machine._id || machine.id}
-                      className="flex flex-col rounded-xl bg-white dark:bg-slate-800/50 ring-1 ring-slate-200 dark:ring-slate-800 shadow-sm transition-all hover:shadow-md hover:ring-slate-300 dark:hover:ring-slate-700"
-                    >
-                      <div className="p-5">
-                        <div className="flex items-start gap-4">
-                          <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900/50">
-                            <img
-                              className="h-full w-full object-cover rounded-lg"
-                              src={
-                                machine.image ||
-                                "https://via.placeholder.com/150"
-                              }
-                              alt={machine.name}
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                              {machine.name}
-                            </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              {machine.reference}
-                            </p>
-                          </div>
-                          <div
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(
-                              machine.status
-                            )}`}
-                          >
-                            {machine.status}
-                          </div>
-                        </div>
-                        <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 p-3">
-                          <div className="text-center">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              Temperature
-                            </p>
-                            <p
-                              className={`mt-1 font-semibold ${
-                                machine.status === "Breakdown"
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-slate-800 dark:text-slate-200"
-                              }`}
-                            >
-                              {machine.temperature}°C
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              Speed
-                            </p>
-                            <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                              {machine.speed} RPM
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              Production
-                            </p>
-                            <p className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
-                              {machine.production} u/hr
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
-                        <button className="rounded-lg h-9 px-3 text-sm font-semibold text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
-                          Details
-                        </button>
-                        <button className="rounded-lg h-9 px-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20">
-                          Report Breakdown
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Pagination */}
-            {!loading && !error && filteredMachines.length > 0 && (
-              <div className="mt-8 flex items-center justify-between">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Displaying{" "}
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    1
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {filteredMachines.length}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {machines.length}
-                  </span>{" "}
-                  results
-                </p>
-              </div>
-            )}
           </div>
-        </main>
-      </main>
+        </div>
+      )}
     </div>
   );
 };
