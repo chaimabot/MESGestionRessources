@@ -2,7 +2,6 @@ const machineService = require("../services/MachineService");
 const response = require("../utils/response");
 
 const machineController = {
-  // 🔹 GET ALL MACHINES
   getAll: async (req, res) => {
     try {
       const machines = await machineService.getAllMachines();
@@ -12,7 +11,6 @@ const machineController = {
     }
   },
 
-  // 🔹 GET MACHINE BY ID
   getById: async (req, res) => {
     try {
       const machine = await machineService.getMachineById(req.params.id);
@@ -23,7 +21,6 @@ const machineController = {
     }
   },
 
-  // 🔹 ADD MACHINE
   addMachine: async (req, res) => {
     try {
       const newMachine = await machineService.addMachine(req.body);
@@ -33,7 +30,6 @@ const machineController = {
     }
   },
 
-  // 🔹 UPDATE STATUS
   updateStatus: async (req, res) => {
     try {
       const updatedMachine = await machineService.updateMachineStatus(
