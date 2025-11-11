@@ -1,4 +1,6 @@
+require('dotenv').config();
+
 module.exports = {
-  jwtSecret: "MES_SECRET_KEY_2025",
-  jwtExpires: "1d",
+  jwtSecret: process.env.JWT_SECRET, 
+  jwtExpires: "1d" 
 };

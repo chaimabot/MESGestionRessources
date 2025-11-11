@@ -14,4 +14,5 @@ const machineSchema = new mongoose.Schema({
   imageUrl: String,
 });
 
-module.exports = mongoose.model("Machine", machineSchema);
+module.exports =
+  mongoose.models.Machine || mongoose.model("Machine", machineSchema);
