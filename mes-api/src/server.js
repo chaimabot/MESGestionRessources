@@ -2,7 +2,10 @@ const express = require("express");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/UserRoutes");
 const machinesRoutes = require("./routes/MachineRoutes");
+const breakdownRoutes = require("./routes/breakdownRoutes");
+
 const cors = require("cors");
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,6 +15,7 @@ connectDB();
 
 // Middleware
 app.use(express.json());
+
 app.use("/images", express.static("assets/images"));
 
 //front
@@ -25,5 +29,6 @@ app.use(
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/machines", machinesRoutes);
+app.use("/api/breakdowns", breakdownRoutes);
 
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
