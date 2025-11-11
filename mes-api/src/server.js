@@ -12,6 +12,8 @@ connectDB();
 
 // Middleware
 app.use(express.json());
+app.use("/images", express.static("assets/images"));
+
 //front
 app.use(
   cors({
@@ -19,6 +21,7 @@ app.use(
     credentials: true,
   })
 );
+
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/machines", machinesRoutes);
