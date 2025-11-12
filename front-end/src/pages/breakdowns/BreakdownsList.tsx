@@ -34,6 +34,15 @@ const BreakdownsList: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // États pour le modal
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [selectedBreakdown, setSelectedBreakdown] = useState<Breakdown | null>(
+    null
+  );
+  const [newStatus, setNewStatus] = useState<string>("");
+  const [updating, setUpdating] = useState<boolean>(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchBreakdowns = async () => {
       try {
@@ -74,6 +83,69 @@ const BreakdownsList: React.FC = () => {
 
     fetchBreakdowns();
   }, []);
+
+  const openModal = (breakdown: Breakdown) => {
+    setSelectedBreakdown(breakdown);
+    setNewStatus(breakdown.status);
+    setIsModalOpen(true);
+    setUpdateError(null);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBreakdown(null);
+    setNewStatus("");
+    setUpdateError(null);
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!selectedBreakdown) return;
+
+    try {
+      setUpdating(true);
+      setUpdateError(null);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Veuillez vous connecter.");
+      }
+
+      const res = await fetch(
+        `http://localhost:5000/api/breakdowns/${selectedBreakdown._id}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${res.status}`);
+      }
+
+      const updatedBreakdown: Breakdown = await res.json();
+
+      // Mettre à jour la liste locale
+      setBreakdowns((prev) =>
+        prev.map((b) => (b._id === updatedBreakdown._id ? updatedBreakdown : b))
+      );
+
+      closeModal();
+    } catch (err: unknown) {
+      console.error(err);
+      if (err instanceof Error) {
+        setUpdateError(err.message);
+      } else {
+        setUpdateError("Erreur lors de la mise à jour");
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -169,13 +241,14 @@ const BreakdownsList: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          <button
+                            onClick={() => openModal(breakdown)}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all hover:scale-105 hover:shadow-lg cursor-pointer ${getStatusColor(
                               breakdown.status
                             )}`}
                           >
                             {breakdown.status}
-                          </span>
+                          </button>
                         </td>
                         <td className="px-6 py-4 text-gray-400">
                           {formatDate(breakdown.createdAt)}
@@ -189,6 +262,94 @@ const BreakdownsList: React.FC = () => {
           )}
         </div>
       </main>
+
+      {/* Modal */}
+      {isModalOpen && selectedBreakdown && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gray-700/50 px-6 py-4 border-b border-gray-600">
+              <h3 className="text-xl font-semibold text-white">
+                Modifier le Statut
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Machine: {selectedBreakdown.machineId.name}
+              </p>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              {updateError && (
+                <div className="bg-red-900/30 border border-red-500/50 text-red-300 p-3 rounded-lg text-sm">
+                  {updateError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description de la panne
+                </label>
+                <p className="text-gray-400 text-sm bg-gray-700/30 p-3 rounded-lg">
+                  {selectedBreakdown.description}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Statut actuel
+                </label>
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                    selectedBreakdown.status
+                  )}`}
+                >
+                  {selectedBreakdown.status}
+                </span>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="status-select"
+                  className="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Nouveau statut
+                </label>
+                <select
+                  id="status-select"
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-700/30 px-6 py-4 flex justify-end gap-3 border-t border-gray-600">
+              <button
+                onClick={closeModal}
+                disabled={updating}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleUpdateStatus}
+                disabled={updating || newStatus === selectedBreakdown.status}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {updating && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                )}
+                {updating ? "Mise à jour..." : "Mettre à jour"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
