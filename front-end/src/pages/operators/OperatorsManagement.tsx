@@ -42,16 +42,6 @@ const OperatorsManagement: React.FC = () => {
                     </span>
                   </button>
                 </div>
-
-                <button className="flex h-12 min-w-0 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary px-4 text-sm font-bold leading-normal tracking-[0.015em] text-white hover:bg-primary/90">
-                  <span
-                    className="material-symbols-outlined text-xl"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
-                    add
-                  </span>
-                  <span className="truncate">Add New Operator</span>
-                </button>
               </div>
             </div>
           </div>

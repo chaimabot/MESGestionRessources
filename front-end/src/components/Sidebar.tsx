@@ -68,17 +68,7 @@ const Sidebar: React.FC = () => {
           <span className="material-symbols-outlined">error</span>
           <p className="text-sm font-medium leading-normal">Breakdowns</p>
         </Link>
-        <Link
-          className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-            isActive("/interventions")
-              ? "bg-primary/30 text-primary"
-              : "text-white/70 hover:bg-white/10"
-          }`}
-          to="/interventions"
-        >
-          <span className="material-symbols-outlined">build</span>
-          <p className="text-sm font-medium leading-normal">Interventions</p>
-        </Link>
+
         <Link
           className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
             isActive("/stocks")
