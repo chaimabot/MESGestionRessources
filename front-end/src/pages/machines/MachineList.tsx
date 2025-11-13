@@ -80,9 +80,7 @@ const MachineList: React.FC = () => {
             <p className="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">
               Machines Management
             </p>
-            <button className="flex h-10 items-center justify-center gap-x-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">
-              + Add Machine
-            </button>
+            
           </div>
 
           {/* Search Bar */}

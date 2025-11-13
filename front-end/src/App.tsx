@@ -5,7 +5,6 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import MachineList from "./pages/machines/MachineList";
 import BreakdownsList from "./pages/breakdowns/BreakdownsList";
 import OperatorsManagement from "./pages/operators/OperatorsManagement";
-import InterventionList from "./pages/interventions/InterventionList";
 import StockManagement from "./pages/stocks/StockManagement";
 import AlertManagement from "./pages/alerts/AlertManagement";
 
@@ -53,7 +52,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route
           path="/breakdowns"
           element={
@@ -70,14 +69,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/interventions"
-          element={
-            <ProtectedRoute>
-              <InterventionList />
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/stocks"
           element={

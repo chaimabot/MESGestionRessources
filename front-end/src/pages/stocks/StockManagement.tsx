@@ -77,15 +77,6 @@ const StockManagement: React.FC = () => {
                   <option>Out of Stock</option>
                 </select>
               </div>
-              <button className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-primary hover:bg-primary/90 text-white gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-4 transition-colors">
-                <span
-                  className="material-symbols-outlined text-xl"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  add
-                </span>
-                <span className="truncate">Add Item</span>
-              </button>
             </div>
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
