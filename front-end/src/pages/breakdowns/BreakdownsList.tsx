@@ -34,6 +34,9 @@ const BreakdownsList: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // États pour le modal
+
+
   useEffect(() => {
     const fetchBreakdowns = async () => {
       try {
@@ -75,6 +78,8 @@ const BreakdownsList: React.FC = () => {
     fetchBreakdowns();
   }, []);
 
+ 
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case "In Progress":
@@ -169,13 +174,13 @@ const BreakdownsList: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          <button
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all hover:scale-105 hover:shadow-lg cursor-pointer ${getStatusColor(
                               breakdown.status
                             )}`}
                           >
                             {breakdown.status}
-                          </span>
+                          </button>
                         </td>
                         <td className="px-6 py-4 text-gray-400">
                           {formatDate(breakdown.createdAt)}
@@ -189,6 +194,8 @@ const BreakdownsList: React.FC = () => {
           )}
         </div>
       </main>
+
+      
     </div>
   );
 };
