@@ -11,7 +11,6 @@ import AlertManagement from "./pages/alerts/AlertManagement";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
-import AddMachine from "./pages/machines/AddMachine";
 
 function App() {
   return (
@@ -54,14 +53,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/machines/add"
-          element={
-            <ProtectedRoute>
-              <AddMachine />
-            </ProtectedRoute>
-          }
-        />
+        
         <Route
           path="/breakdowns"
           element={
