@@ -1,6 +1,5 @@
 const breakdownService = require("../services/BreakdownService");
 
-
 exports.getAllBreakdowns = async (req, res) => {
   try {
     const breakdowns = await breakdownService.getAllBreakdowns();
@@ -9,7 +8,6 @@ exports.getAllBreakdowns = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 exports.assignTechnician = async (req, res) => {
   try {
@@ -20,5 +18,13 @@ exports.assignTechnician = async (req, res) => {
     res.json(breakdown);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+exports.getAllTechnicians = async (req, res) => {
+  try {
+    const technicians = await breakdownService.getAllTechnicians();
+    res.status(200).json(technicians);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
