@@ -24,6 +24,7 @@ interface Breakdown {
   machineId: Machine;
   description: string;
   reportedBy: User;
+  assignedTo?: User;
   status: string;
   createdAt: string;
   __v: number;
@@ -31,11 +32,16 @@ interface Breakdown {
 
 const BreakdownsList: React.FC = () => {
   const [breakdowns, setBreakdowns] = useState<Breakdown[]>([]);
+  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [selectedBreakdown, setSelectedBreakdown] = useState<Breakdown | null>(
+    null
+  );
+  const [selectedTechnicianId, setSelectedTechnicianId] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
- 
-
+  // Charger les pannes
   useEffect(() => {
     const fetchBreakdowns = async () => {
       try {
@@ -43,22 +49,16 @@ const BreakdownsList: React.FC = () => {
         setError(null);
 
         const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Veuillez vous connecter pour accéder aux données.");
-        }
+        if (!token) throw new Error("Veuillez vous connecter.");
 
         const res = await fetch("http://localhost:5000/api/breakdowns", {
-          method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `Erreur ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`Erreur ${res.status}`);
 
         const data: Breakdown[] = await res.json();
         setBreakdowns(data);
@@ -77,7 +77,68 @@ const BreakdownsList: React.FC = () => {
     fetchBreakdowns();
   }, []);
 
- 
+  // Charger la liste des techniciens (une seule fois)
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          "http://localhost:5000/api/breakdowns/technicians",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await res.json();
+        setTechnicians(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTechnicians();
+  }, []);
+
+  // Fonction assignation
+  const handleAssignTechnician = async () => {
+    if (!selectedBreakdown || !selectedTechnicianId) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `http://localhost:5000/api/breakdowns/${selectedBreakdown._id}/assign`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ technicianId: selectedTechnicianId }),
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Erreur lors de l’assignation.");
+      }
+
+      const updated = await res.json();
+
+      // Mettre à jour localement la panne
+      setBreakdowns((prev) =>
+        prev.map((b) => (b._id === updated._id ? updated : b))
+      );
+
+      setModalOpen(false);
+      setSelectedTechnicianId("");
+      setSelectedBreakdown(null);
+    } catch (err: unknown) {
+      console.error(err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Erreur inconnue");
+      }
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -112,89 +173,127 @@ const BreakdownsList: React.FC = () => {
             <h2 className="text-2xl font-bold text-white">Liste des Pannes</h2>
           </div>
 
-          {/* Chargement */}
           {loading && (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
-              <span className="ml-3 text-gray-400">Chargement...</span>
+            <div className="flex justify-center items-center py-12 text-gray-400">
+              Chargement...
             </div>
           )}
 
-          {/* Erreur */}
-          {error && !loading && (
-            <div className="bg-red-900/30 border border-red-500/50 text-red-300 p-4 rounded-lg mb-6">
-              <p className="font-medium">Erreur :</p>
-              <p>{error}</p>
+          {error && (
+            <div className="bg-red-900/30 text-red-300 border border-red-500/50 p-4 rounded-lg">
+              {error}
             </div>
           )}
 
-          {/* Aucune panne */}
-          {!loading && !error && breakdowns.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              Aucune panne signalée pour le moment.
-            </div>
-          )}
-
-          {/* Tableau */}
-          {!loading && breakdowns.length > 0 && (
-            <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-300">
-                  <thead className="text-xs uppercase bg-gray-700/70 text-gray-400">
-                    <tr>
-                      <th className="px-6 py-3">Machine</th>
-                      <th className="px-6 py-3">Description</th>
-                      <th className="px-6 py-3">Signalé par</th>
-                      <th className="px-6 py-3">Statut</th>
-                      <th className="px-6 py-3">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {breakdowns.map((breakdown) => (
-                      <tr
-                        key={breakdown._id}
-                        className="bg-gray-800/30 hover:bg-gray-700/50 transition-colors"
+          {!loading && !error && breakdowns.length > 0 && (
+            <div className="bg-gray-800/50 rounded-xl overflow-hidden">
+              <table className="w-full text-sm text-left text-gray-300">
+                <thead className="bg-gray-700/70 text-gray-400">
+                  <tr>
+                    <th className="px-6 py-3">Machine</th>
+                    <th className="px-6 py-3">Description</th>
+                    <th className="px-6 py-3">Signalé par</th>
+                    <th className="px-6 py-3">Statut</th>
+                    <th className="px-6 py-3">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {breakdowns.map((b) => (
+                    <tr key={b._id} className="hover:bg-gray-700/40">
+                      <td className="px-6 py-4 text-white">
+                        {b.machineId.name}
+                      </td>
+                      <td className="px-6 py-4">{b.description}</td>
+                      <td
+                        className="px-6 py-4 cursor-pointer text-blue-400 hover:underline"
+                        onClick={() => {
+                          setSelectedBreakdown(b);
+                          setModalOpen(true);
+                        }}
                       >
-                        <td className="px-6 py-4 font-medium text-white">
-                          {breakdown.machineId.name}
-                        </td>
-                        <td className="px-6 py-4 max-w-xs">
-                          <span
-                            className="block truncate"
-                            title={breakdown.description}
-                          >
-                            {breakdown.description}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {breakdown.reportedBy.name}
-                          <span className="block text-xs text-gray-500">
-                            ({breakdown.reportedBy.role})
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all hover:scale-105 hover:shadow-lg cursor-pointer ${getStatusColor(
-                              breakdown.status
-                            )}`}
-                          >
-                            {breakdown.status}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-gray-400">
-                          {formatDate(breakdown.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {b.reportedBy.name}
+                        <span className="block text-xs text-gray-500">
+                          ({b.reportedBy.role})
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            b.status
+                          )}`}
+                        >
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-400">
+                        {formatDate(b.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
-      </main>
 
-      
+        {/* Modal assignation */}
+        {modalOpen && selectedBreakdown && (
+          <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
+            <div className="bg-gray-800 rounded-xl p-6 w-96 text-gray-200">
+              <h3 className="text-xl font-semibold mb-4">
+                Assigner un technicien
+              </h3>
+
+              <p className="text-sm mb-3">
+                <strong>Panne :</strong> {selectedBreakdown.description}
+              </p>
+
+              {selectedBreakdown.assignedTo ? (
+                <p className="text-sm mb-3 text-green-400">
+                  Technicien actuel :{" "}
+                  <strong>{selectedBreakdown.assignedTo.name}</strong>
+                </p>
+              ) : (
+                <p className="text-sm mb-3 text-yellow-400">
+                  Aucun technicien assigné.
+                </p>
+              )}
+
+              <label className="block text-sm mb-2">
+                Sélectionner un technicien :
+              </label>
+              <select
+                className="w-full bg-gray-700 p-2 rounded mb-4"
+                value={selectedTechnicianId}
+                onChange={(e) => setSelectedTechnicianId(e.target.value)}
+              >
+                <option value="">-- Choisir --</option>
+                {technicians.map((tech) => (
+                  <option key={tech._id} value={tech._id}>
+                    {tech.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleAssignTechnician}
+                  disabled={!selectedTechnicianId}
+                  className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 disabled:opacity-50"
+                >
+                  Assigner
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 };

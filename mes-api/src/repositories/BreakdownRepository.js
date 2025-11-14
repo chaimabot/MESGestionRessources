@@ -1,8 +1,6 @@
 const Breakdown = require("../models/Breakdown");
-
+const User = require("../models/user");
 class BreakdownRepository {
- 
-
   async findAll() {
     return await Breakdown.find()
       .populate("machineId")
@@ -25,9 +23,15 @@ class BreakdownRepository {
   async assignTechnician(id, technicianId) {
     return await Breakdown.findByIdAndUpdate(
       id,
-      { assignedTo: technicianId },
+      {
+        assignedTo: technicianId, 
+      },
       { new: true }
-    );
+    ).populate("assignedTo reportedBy", "name email role");
+  }
+
+  async getAllTechnicians() {
+    return await User.find({ role: "technicien" }).select("name email role");
   }
 }
 
